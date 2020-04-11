@@ -21,8 +21,8 @@ SSD1306Wire display(0x3c, esp32I2CSDA, esp32I2CSCL);  // i2c # 1
 extern TwoWire Wire1; // i2c #2
 
 // Replace with your network credentials
-const char* ssid     = "iphone";
-const char* password = "t1dalwave$";
+const char* ssid     = "tidalWave";
+const char* password = "";
 double lastTidalVolume=0.0;
 String sTidalVolume;
 String ipAddress;
@@ -240,7 +240,7 @@ double getFlow() {
       Flow = 0.00;
     }
     else {
-      Flow = ((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset; // flow in liters/min
+      Flow = -(((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset); // flow in liters/min
     }
     return(Flow);
   }
@@ -270,21 +270,27 @@ void loop() {
   uint32_t startUs = 0;
   double tidalVolume = 0.0;
   uint32_t lastMilliSec = 0;
+  const double flowTrigger = .3;
+  const double conversionFactor = 60000;
+  const int  skipCount = 50;
+  const double minTidalVolume = 10.0;
   
   while (true) {
     flow = getFlow();
     lastUs = micros();
-    if ((flow + lastFlow)/2 > .125) {
+    if ((flow + lastFlow)/2 > flowTrigger) {
       tidalVolume = 0.0;
       startUs = lastUs;
-      while ((flow + lastFlow)/2 >.125) {
+      while ((flow + lastFlow)/2 > flowTrigger) {
         flow = getFlow();
         nowUs = micros();
         elapsedUs = nowUs - lastUs;
         tidalVolume = tidalVolume + ( elapsedUs * (flow + lastFlow)/2);
         skip++;
-        if (++skip > 50) {
-          Serial.println(flow); // print the calculated flow to the serial interface
+        if (++skip > skipCount) {
+          Serial.print(flow); // print the calculated flow to the serial interface
+          Serial.print(' ');
+          Serial.println(tidalVolume/conversionFactor);
           skip = 0;
         }
         //Serial.print(' ');
@@ -295,8 +301,8 @@ void loop() {
         lastFlow = flow;
         delay(1);
       }
-      tidalVolume = tidalVolume / 60000; // volume in mL (factor out microsec & minutes)
-      if (tidalVolume > 10.0) {
+      tidalVolume = tidalVolume / conversionFactor; // volume in mL (factor out microsec & minutes)
+      if (tidalVolume > minTidalVolume) {
         lastTidalVolume = tidalVolume;
         lastMilliSec = millis();
         hwSerial.print("Duration = ");
@@ -309,14 +315,17 @@ void loop() {
     } 
     else {
       skip++;
-      if (++skip > 50) {
-        Serial.println(flow); // print the calculated flow to the serial interface
+      if (++skip > skipCount) {
+        Serial.print(flow); // print the calculated flow to the serial interface
+        Serial.print(' ');
+        Serial.println('0');
+ 
         skip = 0;
         updateDisplay(double(millis() - lastMilliSec)/1000.0);
       }
       sFlow = String(flow, 1);
       //hwSerial.println(sFlow);
-      delay(2);
+      delay(1);
     }  
     lastFlow = flow;
   }
