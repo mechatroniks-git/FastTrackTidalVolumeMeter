@@ -14,6 +14,7 @@ Source: github.com/mechatroniks-git
 #include "esp32config.h"
 
 
+
 HardwareSerial hwSerial(1); 
 
 SSD1306Wire display(0x3c, esp32I2CSDA, esp32I2CSCL);  // i2c # 1
@@ -21,10 +22,16 @@ SSD1306Wire display(0x3c, esp32I2CSDA, esp32I2CSCL);  // i2c # 1
 extern TwoWire Wire1; // i2c #2
 
 // Replace with your network credentials
-const char* ssid     = "tidalWave";
-const char* password = "";
+const char* ssid     = "BUNKY";
+const char* password = "#poppYcock33#";
+const double flowTrigger = .5;
+const double conversionFactor = 60000;
+const int skipCount = 50;
+const int averageCount = 1000;
+const double minTidalVolume = 10.0;
 double lastTidalVolume=0.0;
 String sTidalVolume;
+String sFlowRate;
 String ipAddress;
   
 // Set web server port number to 80
@@ -241,6 +248,7 @@ double getFlow() {
     }
     else {
       Flow = -(((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset); // flow in liters/min
+      //Flow = (((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset); // flow in liters/min
     }
     return(Flow);
   }
@@ -251,6 +259,7 @@ void updateDisplay(double elapsedSeconds) {
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.setFont(ArialMT_Plain_16);
   display.drawString(0, 0, "TVol = " + sTidalVolume +" mL");
+  //display.drawString(0, 0, "f= " + sFlowRate);
   display.setFont(ArialMT_Plain_10);
   display.drawString(0, 25, "Last = " + String(elapsedSeconds) +" sec");
   display.setFont(ArialMT_Plain_10);
@@ -258,11 +267,28 @@ void updateDisplay(double elapsedSeconds) {
   display.display();
 }
 
+void updatePlot(double flow, double tidalVolume, uint32_t timeUs) {
+  //Serial.print("{TIMEPLOT|DATA|FlowRate|T|"); // print the Meguno 
+  //Serial.print(flow); // print the calculated flow to the serial interface
+  //Serial.println("}/r/n"); // print the calculated flow to the serial interface
+  //Serial.print("{TIMEPLOT|DATA|tidalVolume|T|"); // print the Meguno 
+  //Serial.print(tidalVolume); // print the calculated flow to the serial interface
+  //Serial.println("}/r/n"); // print the calculated flow to the serial interface
+  
+  //Serial.print(timeUs); // print the calculated flow to the serial interface
+  //Serial.print("\t"); // print the calculated flow to the serial interface
+  Serial.print(flow); // print the calculated flow to the serial interface
+  Serial.print("\t"); // print the calculated flow to the serial interface
+  Serial.println(tidalVolume); // print the calculated flow to the serial interface
+}
+
 void loop() {
   String currentLine = "";
   int skip = 0; 
   double flow = 0.0;
   double lastFlow =0.0;
+  double flowRunningSum = 0;
+  double flowAverage = 0;
   String sFlow;
   uint32_t nowUs = micros();
   uint32_t lastUs = 0;
@@ -270,33 +296,33 @@ void loop() {
   uint32_t startUs = 0;
   double tidalVolume = 0.0;
   uint32_t lastMilliSec = 0;
-  const double flowTrigger = .3;
-  const double conversionFactor = 60000;
-  const int  skipCount = 50;
-  const double minTidalVolume = 10.0;
-  
+    
   while (true) {
     flow = getFlow();
     lastUs = micros();
     if ((flow + lastFlow)/2 > flowTrigger) {
       tidalVolume = 0.0;
+      skip = 0;
       startUs = lastUs;
       while ((flow + lastFlow)/2 > flowTrigger) {
         flow = getFlow();
         nowUs = micros();
         elapsedUs = nowUs - lastUs;
         tidalVolume = tidalVolume + ( elapsedUs * (flow + lastFlow)/2);
-        skip++;
-        if (++skip > skipCount) {
-          Serial.print(flow); // print the calculated flow to the serial interface
-          Serial.print(' ');
-          Serial.println(tidalVolume/conversionFactor);
+        flowRunningSum = flowRunningSum + flow - flowAverage;
+        flowAverage = flowRunningSum / averageCount;
+        skip = skip + 1;
+        if (skip > skipCount) {
+          updatePlot(flowAverage, tidalVolume/(conversionFactor),nowUs); \ 
           skip = 0;
+          hwSerial.print(flow);
+          hwSerial.print('\t');
+          hwSerial.print(flowAverage);
+          hwSerial.print('\t');
+          hwSerial.println(nowUs);
+          sFlowRate = String(flowAverage,0.1) + " " + String(flow,0);
+          updateDisplay(elapsedUs/1000000);
         }
-        //Serial.print(' ');
-        //hwSerial.print(flow);
-        //hwSerial.print("\t");
-        //hwSerial.println(nowUs);
         lastUs = nowUs;
         lastFlow = flow;
         delay(1);
@@ -314,14 +340,13 @@ void loop() {
       }
     } 
     else {
-      skip++;
-      if (++skip > skipCount) {
-        Serial.print(flow); // print the calculated flow to the serial interface
-        Serial.print(' ');
-        Serial.println('0');
- 
-        skip = 0;
+      flowRunningSum = flowRunningSum + flow - flowAverage;
+      flowAverage = flowRunningSum / averageCount;
+      if (skip++ > skipCount) {
+        sFlowRate = String(flowAverage,0.1) + " " + String(flow,0);
+        updatePlot(flowAverage, 0, micros());
         updateDisplay(double(millis() - lastMilliSec)/1000.0);
+        skip = 0;
       }
       sFlow = String(flow, 1);
       //hwSerial.println(sFlow);
