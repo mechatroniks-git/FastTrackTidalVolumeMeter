@@ -22,13 +22,13 @@ SSD1306Wire display(0x3c, esp32I2CSDA, esp32I2CSCL);  // i2c # 1
 extern TwoWire Wire1; // i2c #2
 
 // Replace with your network credentials
-const char* ssid     = "BUNKY";
-const char* password = "#poppYcock33#";
-const double flowTrigger = .5;
+const char* ssid     = "#ssid#";
+const char* password = "#password#";
 const double conversionFactor = 60000;
 const int skipCount = 50;
-const int averageCount = 1000;
+const int averageCount = 50;
 const double minTidalVolume = 10.0;
+double flowTrigger = 2.6;
 double lastTidalVolume=0.0;
 String sTidalVolume;
 String sFlowRate;
@@ -109,18 +109,18 @@ void setupOled(){
   display.init();
   display.flipScreenVertically();
   display.clear();
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.setFont(ArialMT_Plain_16);
-  display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-  display.drawString(display.getWidth()/2, display.getHeight()/2, "TidalVolume");
+  display.drawString(0, 0, "Spirometer");
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(0, 45, "4/30/2020");
   display.display();
   display.setTextAlignment(TEXT_ALIGN_LEFT);
 }
 
 void setupSerial() {
   Serial.begin(115200);
-  Serial.println("FastTrackTidalFlow");
   hwSerial.begin(115200, SERIAL_8N1, esp32Uart2Rx, esp32Uart2Tx);
-  hwSerial.println("FastTrackTidalFlow");
 }
 
 void setupFlowSensor() {
@@ -164,34 +164,50 @@ void setupWifi(){
   hwSerial.print("Connecting to ");
   hwSerial.println(ssid);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  int noWiFiCounter = 0;
+  while ((WiFi.status() != WL_CONNECTED ) && (noWiFiCounter < 12) ) {
     delay(500);
+    noWiFiCounter++;
     hwSerial.print(".");
   }
-  // Print local IP address and start web server
-  hwSerial.println("");
-  hwSerial.println("WiFi connected.");
-  hwSerial.println("IP address: ");
-  ipAddress = toString(WiFi.localIP());
-  //hwSerial.println(WiFi.localIP());
-  hwSerial.println(ipAddress);
-  // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send_P(200, "text/html", index_html, processor);
-  });
-  server.on("/tidalvolume", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send_P(200, "text/plain", readTidalVolume().c_str());
-  });
-  // Start server
-  server.begin();
-  hwSerial.println("Server started");
+  if (WiFi.status() != WL_CONNECTED ) {
+     hwSerial.println("no WiFi found");
+     ipAddress = "SSID Not Found";
+  }
+  else {
+    // Print local IP address and start web server
+    hwSerial.println("");
+    hwSerial.println("WiFi connected.");
+    hwSerial.println("IP address: ");
+    ipAddress = toString(WiFi.localIP());
+    //hwSerial.println(WiFi.localIP());
+    hwSerial.println(ipAddress);
+    // Route for root / web page
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send_P(200, "text/html", index_html, processor);
+    });
+    server.on("/tidalvolume", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send_P(200, "text/plain", readTidalVolume().c_str());
+    });
+    // Start server
+    server.begin();
+    hwSerial.println("Server started");
+  }
 }
 
 void setup() {
-  setupOled();
   setupSerial();
+  Serial.println("Serial Setup");
+  hwSerial.println("Serial Setup");
+  setupOled();
+  Serial.println("OLED Setup");
+  hwSerial.println("OLED Setup");
   setupFlowSensor();  
+  Serial.println("FlowSensor Setup");
+  hwSerial.println("FlowSensor Setup");
   setupWifi();
+  Serial.println("WiFi Setup");
+  hwSerial.println("WiFi Setup");
 }
 
 //CRC
@@ -247,8 +263,8 @@ double getFlow() {
       Flow = 0.00;
     }
     else {
-      Flow = -(((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset); // flow in liters/min
-      //Flow = (((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset); // flow in liters/min
+      //Flow = -(((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset); // flow in liters/min
+      Flow = (((double)(measuredValue - offsetFlow) / scaleFactorFlow) + calibrationOffset); // flow in liters/min
     }
     return(Flow);
   }
@@ -268,17 +284,12 @@ void updateDisplay(double elapsedSeconds) {
 }
 
 void updatePlot(double flow, double tidalVolume, uint32_t timeUs) {
-  //Serial.print("{TIMEPLOT|DATA|FlowRate|T|"); // print the Meguno 
-  //Serial.print(flow); // print the calculated flow to the serial interface
-  //Serial.println("}/r/n"); // print the calculated flow to the serial interface
-  //Serial.print("{TIMEPLOT|DATA|tidalVolume|T|"); // print the Meguno 
-  //Serial.print(tidalVolume); // print the calculated flow to the serial interface
-  //Serial.println("}/r/n"); // print the calculated flow to the serial interface
-  
   //Serial.print(timeUs); // print the calculated flow to the serial interface
   //Serial.print("\t"); // print the calculated flow to the serial interface
-  Serial.print(flow); // print the calculated flow to the serial interface
+  Serial.print("SLMx10:");
+  Serial.print(flow*10); // print the calculated flow to the serial interface
   Serial.print("\t"); // print the calculated flow to the serial interface
+  Serial.print("TidalVol:");
   Serial.println(tidalVolume); // print the calculated flow to the serial interface
 }
 
@@ -296,7 +307,7 @@ void loop() {
   uint32_t startUs = 0;
   double tidalVolume = 0.0;
   uint32_t lastMilliSec = 0;
-    
+  Serial.println("Starting Main");
   while (true) {
     flow = getFlow();
     lastUs = micros();
@@ -313,7 +324,7 @@ void loop() {
         flowAverage = flowRunningSum / averageCount;
         skip = skip + 1;
         if (skip > skipCount) {
-          updatePlot(flowAverage, tidalVolume/(conversionFactor),nowUs); \ 
+          updatePlot(flowAverage, tidalVolume/(conversionFactor),nowUs);  
           skip = 0;
           hwSerial.print(flow);
           hwSerial.print('\t');
