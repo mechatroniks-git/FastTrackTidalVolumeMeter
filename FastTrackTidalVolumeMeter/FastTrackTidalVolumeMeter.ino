@@ -7,12 +7,12 @@ Source: github.com/mechatroniks-git
 #include <Wire.h>  
 #include <Arduino.h>
 #include <HardwareSerial.h>
-#include <WiFi.h>
-#include <Time.h>
-#include "SSD1306Wire.h"
-#include "ESPAsyncWebServer.h"
-#include "esp32config.h"
-
+#include <WiFi.h>  //https://github.com/espressif/arduino-esp32
+#include <Time.h> //https://github.com/PaulStoffregen/Time
+#include "SSD1306Wire.h" //https://github.com/ThingPulse/esp8266-oled-ssd1306
+#include "ESPAsyncWebServer.h" //https://github.com/me-no-dev/ESPAsyncWebServer
+#include "esp32config.h" 
+#include "AsyncTCP.h" //https://github.com/me-no-dev/AsyncTCP
 
 
 HardwareSerial hwSerial(1); 
@@ -23,7 +23,7 @@ extern TwoWire Wire1; // i2c #2
 
 // Replace with your network credentials
 const char* ssid     = "BUNKY";
-const char* password = "#poppYcock33#";
+const char* password = "#wifipassword#";
 const double flowTrigger = .5;
 const double conversionFactor = 60000;
 const int skipCount = 50;
