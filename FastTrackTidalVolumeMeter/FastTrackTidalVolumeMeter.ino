@@ -25,8 +25,8 @@ extern TwoWire Wire1; // i2c #2
 const char* ssid     = "#ssid#";
 const char* password = "#password#";
 const double conversionFactor = 60000;
-const int skipCount = 50;
-const int averageCount = 50;
+const int skipCount = 20; //update rate in mS
+const int averageCount = 50; //sample averaging time in ms
 const double minTidalVolume = 10.0;
 double flowTrigger = 2.6;
 double lastTidalVolume=0.0;
@@ -113,7 +113,7 @@ void setupOled(){
   display.setFont(ArialMT_Plain_16);
   display.drawString(0, 0, "Spirometer");
   display.setFont(ArialMT_Plain_10);
-  display.drawString(0, 45, "4/30/2020");
+  display.drawString(0, 45, "5/27/2020");
   display.display();
   display.setTextAlignment(TEXT_ALIGN_LEFT);
 }
