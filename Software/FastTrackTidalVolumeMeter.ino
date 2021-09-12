@@ -4,14 +4,14 @@ This software is licensed under the CERN CERN Open Hardware Licence Version 2 - 
 Source: github.com/mechatroniks-git
 */
 
-#include <Wire.h>  
-#include <Arduino.h>
-#include <HardwareSerial.h>
-#include <WiFi.h>
-#include <Time.h>
-#include "SSD1306Wire.h"
-#include "ESPAsyncWebServer.h"
-#include "esp32config.h"
+#include <Wire.h> // Arduino Built-in
+#include <Arduino.h> // Arduino AVR core
+#include <HardwareSerial.h> // Arduino AVR core
+#include <WiFi.h> // Arduino Built-in
+#include <Time.h> // PaulStoffregen - Time
+#include <SSD1306Wire.h> // https://github.com/ThingPulse/esp8266-oled-ssd1306
+#include <ESPAsyncWebServer.h> // https://github.com/me-no-dev/ESPAsyncWebServer also requires https://github.com/me-no-dev/AsyncTCP
+#include "esp32config.h" // This project
 
 
 
