@@ -11,8 +11,8 @@ Source: github.com/mechatroniks-git
     constexpr gpio_num_t  esp32I2CSCL    {GPIO_NUM_0};
     constexpr gpio_num_t  esp32USBTx     {GPIO_NUM_1};
     constexpr gpio_num_t  SDA_2          {GPIO_NUM_2};
-    constexpr gpio_num_t  esp32USBRx     {GPIO_NUM_3};
-    constexpr gpio_num_t  esp32I2CSDA    {GPIO_NUM_4};
+    constexpr gpio_num_t  esp32I2CSDA    {GPIO_NUM_3};
+    constexpr gpio_num_t  esp32USBRx     {GPIO_NUM_4};
     constexpr gpio_num_t  esp32Uart2Tx   {GPIO_NUM_5};
     constexpr gpio_num_t  esp32SpiClk    {GPIO_NUM_6};
     constexpr gpio_num_t  esp32SpiQ      {GPIO_NUM_7};
