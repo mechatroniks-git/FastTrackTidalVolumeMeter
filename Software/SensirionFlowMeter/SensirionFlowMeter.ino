@@ -31,7 +31,7 @@ void setupOled(){
   display.setFont(ArialMT_Plain_16);
   display.drawString(0, 0, "Tetra Bio Flow Meter");
   display.setFont(ArialMT_Plain_10);
-  display.drawString(0, 45, "22May2021");
+  display.drawString(0, 45, "29September2021");
   display.display();
   display.setTextAlignment(TEXT_ALIGN_LEFT);
 }
@@ -139,7 +139,7 @@ void updateDisplay() {
   display.setFont(ArialMT_Plain_10);
   display.drawString(0, 25, "Max = " + String(maxSFlowRate) +" LPM");
   display.setFont(ArialMT_Plain_10);
-  display.drawString(0,45,"v-22May2021");
+  display.drawString(0,45,"v-29Sept2021");
   display.display();
 }
 
