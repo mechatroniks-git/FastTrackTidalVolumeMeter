@@ -172,7 +172,7 @@ void loop() {
     flowAverage = flowRunningSum / averageCount;
     maxSFlowRate = max(maxSFlowRate,flowAverage);
     if (skip++ > skipCount) {
-      sFlowRate = String(flowAverage,0.1) + " " + String(flow,0);
+      sFlowRate = String(flowAverage,2);
       updateDisplay();
       updatePlot(flowAverage);
       skip = 0;
